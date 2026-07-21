@@ -453,7 +453,7 @@ function main()
     H_diff = H_phys - E_target * Id
     H_penalty = lambda * apply(H_diff, H_diff; maxdim=maxdim_obs, cutoff=trunc)
 
-    plot_ts = (1:plotrep) .* dt
+    plot_ts = (0:(plotrep - 1)) .* dt
     O_expected_exact = zeros(Float64, length(is), plotrep)
     EEs_exact = zeros(Float64, length(is), plotrep)
     O_expected_approx = zeros(Float64, length(is), plotrep)
