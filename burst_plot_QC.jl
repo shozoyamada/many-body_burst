@@ -40,11 +40,16 @@ function Trotter(N, s, Jx, Jy, Jz, hx, hy, hz, dt)
     return gate
 end
 
-function Eq_beta(N, s, beta, O, Jx, Jy, Jz, hx, hy, hz; dbeta = 0.001, maxdim=1024, cutoff=1e-14)
+function Eq_beta(N, s, beta, O, Jx, Jy, Jz, hx, hy, hz; dbeta = 0.0001, maxdim=2048, cutoff=1e-14)
     Id = MPO(s, n -> "Id")
     rho = copy(Id)
-    gate_beta = Trotter(N, s, Jx, Jy, Jz, hx, hy, hz, -im * dbeta)
-    steps = Int(abs(beta / dbeta))
+    if beta >= 0
+        gate_beta = Trotter(N, s, Jx, Jy, Jz, hx, hy, hz, -im * dbeta)
+    else
+        gate_beta = Trotter(N, s, Jx, Jy, Jz, hx, hy, hz, im * dbeta)
+    end
+    
+    steps = round(Int, abs(beta / dbeta))
     for step in 1:steps
         rho = apply(gate_beta, rho; maxdim=maxdim, cutoff=cutoff)
     end
