@@ -40,7 +40,7 @@ function Trotter(N, s, Jx, Jy, Jz, hx, hy, hz, dt)
     return gate
 end
 
-function Eq_beta(N, s, beta, O, Jx, Jy, Jz, hx, hy, hz; dbeta = 0.0001, maxdim=2048, cutoff=1e-14)
+function Eq_beta(N, s, beta, O, Jx, Jy, Jz, hx, hy, hz; dbeta = 0.001, maxdim=2048, cutoff=1e-14)
     Id = MPO(s, n -> "Id")
     rho = copy(Id)
     if beta >= 0
