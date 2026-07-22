@@ -11,6 +11,8 @@ This repository contains the Julia code used for the numerical analysis in:
 - Package versions:
   - ITensors: **0.9.9**
   - ITensorMPS: **0.3.20**
+  - JLD2: **0.6.0**
+  - ProgressMeter: **1.11.0**
 
 ## Usage
 
