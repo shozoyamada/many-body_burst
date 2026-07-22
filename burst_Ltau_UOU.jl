@@ -60,7 +60,7 @@ function Eq_beta(N, s, beta, O, Jx, Jy, Jz, hx, hy, hz; dbeta = 0.0001, maxdim=2
     return eq_O
 end
 
-function calc_beta_and_obs(N, s, psi, O, Jx, Jy, Jz, hx, hy, hz; dbeta_abs=0.0001, max_steps=10000, maxdim=2048, cutoff=1e-14)
+function calc_beta_and_obs(N, s, psi, O, Jx, Jy, Jz, hx, hy, hz; dbeta_abs=0.0001, max_steps=100000, maxdim=2048, cutoff=1e-14)
 
     Id = MPO(s, n -> "Id")
     H = Heisenberg(N, s, Jx, Jy, Jz, hx, hy, hz)
