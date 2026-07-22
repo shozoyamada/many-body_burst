@@ -441,7 +441,7 @@ function main()
                     normalize!(psi_evolved)
                 end
                 
-                xi_TM = bulk_correlation_length_TM(psi; exclude_ends=5, block_size=2, statistic=:median).xi_bulk
+                xi_TM = bulk_correlation_length_TM(psi; exclude_ends=min(5, round(Int, L/4)), block_size=2, statistic=:median).xi_bulk
                 xi_x, std_xi_x = estimate_correlation_length(psi, "Sx"; threshold=1e-7)
                 xi_y, std_xi_y = estimate_correlation_length(psi, "Sy"; threshold=1e-7)
                 xi_z, std_xi_z = estimate_correlation_length(psi, "Sz"; threshold=1e-7)
