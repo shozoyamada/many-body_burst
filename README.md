@@ -43,9 +43,8 @@ julia burst_plot_QC.jl
 
 This script computes the data used for:
 
-- Fig. 1
-- Fig. 3(b)
-- Fig. 6(a)
+- Figs. 1 and 6(a): time evolution starting from the optimized initial state
+- Fig. 3(b): time evolution starting from the state that approximates the optimized state by a shallow quantum circuit
 
 ### 3. System-size and burst-time dependence
 
