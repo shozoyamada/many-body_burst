@@ -40,7 +40,7 @@ function Trotter(N, s, Jx, Jy, Jz, hx, hy, hz, dt)
     return gate
 end
 
-function Eq_beta(N, s, beta, O, Jx, Jy, Jz, hx, hy, hz; dbeta = 0.001, maxdim=2048, cutoff=1e-14)
+function Eq_beta(N, s, beta, O, Jx, Jy, Jz, hx, hy, hz; dbeta = 0.0001, maxdim=2048, cutoff=1e-14)
     Id = MPO(s, n -> "Id")
     rho = copy(Id)
     if beta >= 0
@@ -69,7 +69,7 @@ function entanglement_entropy(psi::MPS,b::Int)
     return SvN
 end
 
-function calc_beta_and_obs(N, s, psi, O, Jx, Jy, Jz, hx, hy, hz; dbeta_abs=0.0001, max_steps=10000, maxdim=1024, cutoff=1e-14)
+function calc_beta_and_obs(N, s, psi, O, Jx, Jy, Jz, hx, hy, hz; dbeta_abs=0.0001, max_steps=10000, maxdim=2048, cutoff=1e-14)
 
     Id = MPO(s, n -> "Id")
     H = Heisenberg(N, s, Jx, Jy, Jz, hx, hy, hz)
@@ -409,22 +409,23 @@ function main()
     maxdim_obs = 2048
     maxdim_state = 128
     trunc = 1e-7
-    Jx, Jy, Jz, hx, hy, hz = 0.0, 0.0, 1.0, 0.9045/2, 0.0, 0.8090/2
+    Jx, Jy, Jz, hx, hy, hz = 0.0, 0.0, 1.0, 0.9045 / 2, 0.0, 0.8090 / 2
     beta = 0.1
-    lambda = 72.0/L^2
+    penalty_coeff = 72.0
+    lambda = penalty_coeff / L^2
     observable = "Magz"
-    parts = 30
+    num_parts = 30
     is = [20]
     layers = 5
     r = 0.6
     optimization_sweeps = 50
+    num_trials = 3
     # --- End of parameter settings ---
 
-    # --- Reconstruct filename ---
-    local cache_file
-    cache_file = "$(observable)_Ising_L$(L)_dt$(dt)_t$(ttotal)_bd$(maxdim_obs)_parts$(parts).jld2"
+    # --- Reconstruct filename (same convention as the other UOU scripts) ---
+    cache_file = "submit_UOU/$(observable)_Ising_L$(L)_dt$(dt)_t$(ttotal)_bd$(maxdim_obs)_parts$(num_parts).jld2"
 
-    # --- Load Data ---
+    # --- Load data ---
     local s, ts, O_Us
     if isfile(cache_file)
         println("File found: $cache_file")
@@ -432,22 +433,24 @@ function main()
         s = data["s"]
         ts = data["ts"]
         O_Us = data["O_Us"]
-        println("Data loading completed.")
+        println("Finished loading data.")
     else
         println("File not found: $cache_file")
-        return # quit if file does not exist
+        return
     end
 
     local O
     if observable == "Szc"
-        c = div(L, 2) + 1 # center site
+        c = div(L, 2) + 1
         os_Szc = OpSum()
         os_Szc += "Sz", c
-        O = MPO(os_Szc,s) # Sz of site c
+        O = MPO(os_Szc, s)
     elseif observable == "Magy"
-        O = Heisenberg(L, s, 0.0, 0.0, 0.0, 0.0, 1/L, 0.0)
+        O = Heisenberg(L, s, 0.0, 0.0, 0.0, 0.0, 1 / L, 0.0)
     elseif observable == "Magz"
-        O = Heisenberg(L, s, 0.0, 0.0, 0.0, 0.0, 0.0, 1/L)
+        O = Heisenberg(L, s, 0.0, 0.0, 0.0, 0.0, 0.0, 1 / L)
+    else
+        error("Unsupported observable: $observable")
     end
 
     gate = Trotter(L, s, Jx, Jy, Jz, hx, hy, hz, dt)
@@ -464,37 +467,122 @@ function main()
     O_expected_approx = zeros(Float64, length(is), plotrep)
     EEs_approx = zeros(Float64, length(is), plotrep)
 
-    # ★Fix 4: Use enumerate to distinguish array index k and value i from is
-    for (k, i) in enumerate(is)
-        tau = ts[i+1]
-        O_tau = O_Us[i+1]
+    # Metadata for the selected exact trial and the circuit approximation.
+    selected_trials = zeros(Int, length(is))
+    selected_burst_values = zeros(Float64, length(is))
+    selected_eq_values = zeros(Float64, length(is))
+    selected_dyn_values = zeros(Float64, length(is))
+    beta_exact_values = zeros(Float64, length(is))
+    beta_approx_values = zeros(Float64, length(is))
+    eq_approx_values = zeros(Float64, length(is))
+    exact_approx_overlaps = zeros(Float64, length(is))
 
-        # H_dmrg = O_tau + H_penalty
+    for (k, i) in enumerate(is)
+        tau_index = i + 1
+        tau = ts[tau_index]
+        O_tau = O_Us[tau_index]
+        evolution_steps = i * div(rep, num_parts)
+
         nsweeps = 50
-        # maxdim = 1:10
         maxdim = fill(chi, nsweeps)
-        # noise = [1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11, 1e-12, 1e-12, 1e-13, 1e-13, 0.0]
-        noise = [1e-3, 1e-3, 1e-4, 1e-4, 1e-5, 1e-5, 1e-6, 1e-6, 1e-7, 1e-7,
-                 1e-8, 1e-8, 1e-9, 1e-9, 1e-10, 1e-10, 1e-11, 1e-11, 1e-12, 1e-12, 1e-13, 1e-13, 1e-14, 1e-14, 0.0]
+        noise_schedule = [
+            1e-3, 1e-3, 1e-4, 1e-4, 1e-5, 1e-5, 1e-6, 1e-6,
+            1e-7, 1e-7, 1e-8, 1e-8, 1e-9, 1e-9, 1e-10, 1e-10,
+            1e-11, 1e-11, 1e-12, 1e-12, 1e-13, 1e-13, 1e-14, 1e-14, 0.0,
+        ]
 
         println("Setting parameters: L=$L, lambda=$lambda, tau=$tau")
 
-        Random.seed!(3001)
-        psi0 = random_mps(ComplexF64, s; linkdims=2)
-        if observable == "Magy"
-            psi0 = MPS(ComplexF64, s, n -> "Y-")
-        end
-        if observable == "Magz"
-            psi0 = MPS(ComplexF64, s, n -> "Dn")
-        end
-        for j in 1:i*div(rep, parts)
-            psi0 = apply(gate_dag, psi0; maxdim=maxdim_state, cutoff=trunc)
-            normalize!(psi0)
+        # Run DMRG three times and keep the state giving the largest burst.
+        current_max_burst = -Inf
+        best_eq_val = 0.0
+        best_dyn_val = 0.0
+        best_beta = 0.0
+        best_trial = 0
+        best_psi_exact = nothing
+
+        for trial in 1:num_trials
+            local psi0
+
+            # Match the initialization policy of the other two scripts:
+            # random product MPS for the first trials, and the backward-evolved
+            # observable-aligned product state for the final trial.
+            if trial != num_trials
+                Random.seed!(1000 + L * 100 + i * 10 + trial)
+                psi0 = random_mps(ComplexF64, s; linkdims=1)
+            else
+                if observable == "Magy"
+                    psi0 = MPS(ComplexF64, s, n -> "Y-")
+                else
+                    psi0 = MPS(ComplexF64, s, n -> "Dn")
+                end
+
+                for _ in 1:evolution_steps
+                    psi0 = apply(gate_dag, psi0; maxdim=maxdim_state, cutoff=trunc)
+                    normalize!(psi0)
+                end
+            end
+
+            _, psi_trial = dmrg(
+                [O_tau, H_penalty],
+                psi0;
+                nsweeps=nsweeps,
+                maxdim=maxdim,
+                noise=noise_schedule,
+                outputlevel=0,
+            )
+
+            psi_at_tau = copy(psi_trial)
+            for _ in 1:evolution_steps
+                psi_at_tau = apply(gate, psi_at_tau; maxdim=maxdim_state, cutoff=trunc)
+                normalize!(psi_at_tau)
+            end
+
+            beta_trial, current_O = calc_beta_and_obs(
+                L,
+                s,
+                psi_trial,
+                O,
+                Jx,
+                Jy,
+                Jz,
+                hx,
+                hy,
+                hz;
+                maxdim=maxdim_obs,
+            )
+
+            dyn_val = -real(inner(psi_at_tau', O, psi_at_tau))
+            burst_val = current_O + dyn_val
+
+            println(
+                "  trial=$trial, beta=$beta_trial, eq=$current_O, " *
+                "dyn=$dyn_val, burst=$burst_val",
+            )
+
+            if best_psi_exact === nothing || burst_val > current_max_burst
+                current_max_burst = burst_val
+                best_eq_val = current_O
+                best_dyn_val = dyn_val
+                best_beta = beta_trial
+                best_trial = trial
+                best_psi_exact = copy(psi_trial)
+            end
         end
 
-        eigs, psi_exact = dmrg([O_tau, H_penalty], psi0; nsweeps, maxdim, noise, cutoff=trunc, outputlevel=0)
+        psi_exact = best_psi_exact::MPS
+        selected_trials[k] = best_trial
+        selected_burst_values[k] = current_max_burst
+        selected_eq_values[k] = best_eq_val
+        selected_dyn_values[k] = best_dyn_val
+        beta_exact_values[k] = best_beta
 
-        psi_evolved = psi_exact
+        println(
+            "Selected trial $best_trial / $num_trials: " *
+            "burst=$current_max_burst (eq=$best_eq_val, dyn=$best_dyn_val)",
+        )
+
+        psi_evolved = copy(psi_exact)
         for j in 1:plotrep
             O_expected_exact[k, j] = real(inner(psi_evolved', O, psi_evolved))
             EEs_exact[k, j] = entanglement_entropy(psi_evolved, div(L, 2))
@@ -504,29 +592,61 @@ function main()
 
         psi_up = MPS(ComplexF64, s, n -> "Up")
         construction_gates = Iter_D_i_O_all(psi_exact, layers, r, optimization_sweeps)
-        psi_approx = psi_up
-        psi_approx = apply_circuit(psi_approx, construction_gates)
-        println("Overlap between exact and approx: ", abs(inner(psi_exact, psi_approx)))
+        psi_approx = apply_circuit(psi_up, construction_gates)
 
-        beta_exact, current_O_exact = calc_beta_and_obs(L, s, psi_exact, O, Jx, Jy, Jz, hx, hy, hz; maxdim=maxdim_obs)
-        beta_approx, current_O_approx = calc_beta_and_obs(L, s, psi_approx, O, Jx, Jy, Jz, hx, hy, hz; maxdim=maxdim_obs)
-        println("Estimated beta (exact): ", beta_exact, ", O: ", current_O_exact)
-        println("Estimated beta (approx): ", beta_approx, ", O: ", current_O_approx)
+        overlap_exact_approx = abs(inner(psi_exact, psi_approx))
+        exact_approx_overlaps[k] = overlap_exact_approx
+        println("Overlap between exact and approx: $overlap_exact_approx")
 
-        psi_evolved = psi_approx
+        beta_approx, current_O_approx = calc_beta_and_obs(
+            L,
+            s,
+            psi_approx,
+            O,
+            Jx,
+            Jy,
+            Jz,
+            hx,
+            hy,
+            hz;
+            maxdim=maxdim_obs,
+        )
+        beta_approx_values[k] = beta_approx
+        eq_approx_values[k] = current_O_approx
+
+        println("Estimated beta (exact): $best_beta, O: $best_eq_val")
+        println("Estimated beta (approx): $beta_approx, O: $current_O_approx")
+
+        psi_evolved = copy(psi_approx)
         for j in 1:plotrep
-            # ★Fix 4: Use k instead of i for index
             O_expected_approx[k, j] = real(inner(psi_evolved', O, psi_evolved))
             EEs_approx[k, j] = entanglement_entropy(psi_evolved, div(L, 2))
             psi_evolved = apply(gate, psi_evolved; maxdim=maxdim_state, cutoff=trunc)
             normalize!(psi_evolved)
         end
     end
-    
-    results_filename = "Burst_plot_QC_$(observable)_L$(L)_lambda$(lambda).jld2"
+
+    results_filename = "Burst_plot_QC_$(observable)_L$(L)_lambda$(penalty_coeff)_chi$(chi)_trials$(num_trials).jld2"
     println("Saving results to $results_filename...")
-    save(results_filename, "plot_ts", plot_ts, "O_expected_exact", O_expected_exact, "EEs_exact", EEs_exact, "O_expected_approx", O_expected_approx, "EEs_approx", EEs_approx)
+    save(
+        results_filename,
+        "plot_ts", plot_ts,
+        "is", is,
+        "selected_trials", selected_trials,
+        "selected_burst_values", selected_burst_values,
+        "selected_eq_values", selected_eq_values,
+        "selected_dyn_values", selected_dyn_values,
+        "beta_exact_values", beta_exact_values,
+        "beta_approx_values", beta_approx_values,
+        "eq_approx_values", eq_approx_values,
+        "exact_approx_overlaps", exact_approx_overlaps,
+        "O_expected_exact", O_expected_exact,
+        "EEs_exact", EEs_exact,
+        "O_expected_approx", O_expected_approx,
+        "EEs_approx", EEs_approx,
+    )
     println("Finished saving.")
+    flush(stdout)
 end
 
 main()
