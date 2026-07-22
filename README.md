@@ -77,8 +77,6 @@ julia burst_Linf.jl
 
 This script computes the infinite-system \(\tau\)-dependence used for Fig. 5.
 
-Set `CALC_MODE = :z` or `:y` as needed. 
-
 
 ## Contact
 
