@@ -150,7 +150,7 @@ function main()
     hzs = 0.0:0.04045:0.4045
     beta = 0.1
     penalty_coeff = 72.0
-    observable = "Magy"
+    observable = "Magz"
     num_parts = 30
     
     # Added: number of trials
