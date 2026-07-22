@@ -508,7 +508,7 @@ function main()
             # random product MPS for the first trials, and the backward-evolved
             # observable-aligned product state for the final trial.
             if trial != num_trials
-                Random.seed!(1000 + L * 100 + i * 10 + trial)
+                Random.seed!(1000 + L * 100 + tau_index * 10 + trial)
                 psi0 = random_mps(ComplexF64, s; linkdims=1)
             else
                 if observable == "Magy"
