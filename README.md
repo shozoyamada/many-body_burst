@@ -82,4 +82,4 @@ Set `CALC_MODE = :z` or `:y` as needed.
 
 ## Contact
 
-**[TODO: contact name and email]**
+**yamada@cat.phys.s.u-tokyo.ac.jp**
