@@ -180,7 +180,7 @@ end
 
 function bulk_correlation_length_TM(
     psi::MPS;
-    exclude_ends::Int = 4,
+    exclude_ends::Int = 5,
     block_size::Int = 2,
     statistic::Symbol = :median,
     trim_fraction::Float64 = 0.1,
@@ -309,7 +309,7 @@ end
 
 function main()
 
-    Ls = [20, 30, 40]
+    Ls = [10, 20, 30, 40]
     chi = 10
     dt = 0.2
     rep = 150
@@ -319,7 +319,7 @@ function main()
     trunc = 1e-7
     Jx, Jy, Jz, hx, hy, hz = 0.0, 0.0, 1.0, 0.9045/2, 0.0, 0.8090/2
     beta = 0.1
-    penalty_coeff = 0.0
+    penalty_coeff = 72.0
     observable = "Magz"
     num_parts = 30
     
