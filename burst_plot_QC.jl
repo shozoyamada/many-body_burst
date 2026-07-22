@@ -560,7 +560,7 @@ function main()
                 "dyn=$dyn_val, burst=$burst_val",
             )
 
-            if best_psi_exact === nothing || burst_val > current_max_burst
+            if burst_val > current_max_burst
                 current_max_burst = burst_val
                 best_eq_val = current_O
                 best_dyn_val = dyn_val
