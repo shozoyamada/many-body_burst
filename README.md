@@ -81,4 +81,4 @@ This script computes the infinite-system `\tau`-dependence used for Fig. 5.
 
 ## Contact
 
-**yamada@cat.phys.s.u-tokyo.ac.jp**
+**yamada[at]cat.phys.s.u-tokyo.ac.jp**
