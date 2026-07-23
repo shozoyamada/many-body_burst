@@ -24,7 +24,7 @@ Create the cache directories before running the finite-system calculations:
 mkdir -p submit_UOU submit_hz_UOU
 ```
 
-### 1. Generate the time-evolved observable \(O(\tau)\)
+### 1. Generate the time-evolved observable `O(\tau)`
 
 Edit the system size `L`, longitudinal field `hz`, observable, and time-evolution parameters in:
 
@@ -34,8 +34,8 @@ julia burst_UOU.jl
 
 Run the script for every required combination of `L` and `hz`. Store the generated JLD2 cache files in the locations expected by the downstream scripts:
 
-- `submit_UOU/`: fixed-\(h_z\) calculations for different `L`
-- `submit_hz_UOU/`: fixed-`L` calculations for different \(h_z\)
+- `submit_UOU/`: fixed-`h_z` calculations for different `L`
+- `submit_hz_UOU/`: fixed-`L` calculations for different `h_z`
 
 ### 2. Burst dynamics and quantum-circuit approximation
 
@@ -46,7 +46,7 @@ julia burst_plot_QC.jl
 This script computes the data used for:
 
 - Figs. 1 and 6(a): time evolution starting from the optimized initial state
-- Fig. 3(b): time evolution starting from the state that approximates the optimized state by a shallow quantum circuit
+- Fig. 3(b): time evolution starting from the state that approximates the optimized state obtained by a shallow quantum circuit
 
 ### 3. System-size and burst-time dependence
 
@@ -56,7 +56,7 @@ julia burst_Ltau_UOU.jl
 
 This script computes the data used for:
 
-- Figs. 2(a) and 6(b): dependence on system size \(L\) and burst time \(\tau\)
+- Figs. 2(a) and 6(b): dependence on system size `L` and burst time `\tau`
 - Fig. 4: correlation length of the optimized initial state
 
 ### 4. Field and burst-time dependence
@@ -67,7 +67,7 @@ julia burst_hztau_UOU.jl
 
 This script computes the data used for:
 
-- Figs. 2(b) and 6(c): dependence on longitudinal field \(h_z\) and burst time \(\tau\)
+- Figs. 2(b) and 6(c): dependence on longitudinal field `h_z` and burst time `\tau`
 
 
 ### 5. Thermodynamic-limit calculation
@@ -76,7 +76,7 @@ This script computes the data used for:
 julia burst_Linf.jl
 ```
 
-This script computes the infinite-system \(\tau\)-dependence used for Fig. 5.
+This script computes the infinite-system `\tau`-dependence used for Fig. 5.
 
 
 ## Contact
