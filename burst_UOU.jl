@@ -73,7 +73,7 @@ end
 function main()
     # parameters definition
 
-    L = 20
+    L = 40
     dt = 0.2
     rep = 150
     ttotal = dt * rep
