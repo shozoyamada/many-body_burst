@@ -1,4 +1,6 @@
+using MKL
 using LinearAlgebra, Statistics, ITensors, ITensorMPS, Printf, Random, JLD2, ProgressMeter
+BLAS.set_num_threads(Threads.nthreads())
 
 function Heisenberg(N, s, Jx, Jy, Jz, hx, hy, hz)
     os_phys = OpSum()
