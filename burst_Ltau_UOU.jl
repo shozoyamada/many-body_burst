@@ -1,4 +1,6 @@
+using MKL
 using LinearAlgebra, ITensors, ITensorMPS, Printf, Random, JLD2, ProgressMeter, Statistics
+BLAS.set_num_threads(Threads.nthreads())
 
 # Functions
 
